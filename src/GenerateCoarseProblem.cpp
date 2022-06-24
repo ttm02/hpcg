@@ -14,7 +14,6 @@
 
 /*!
  @file GenerateProblem.cpp
-
  HPCG routine
  */
 
@@ -31,11 +30,8 @@
 /*!
   Routine to construct a prolongation/restriction operator for a given fine grid matrix
   solution (as computed by a direct solver).
-
   @param[inout]  Af - The known system matrix, on output its coarse operator, fine-to-coarse operator and auxiliary vectors will be defined.
-
   Note that the matrix Af is considered const because the attributes we are modifying are declared as mutable.
-
 */
 
 void GenerateCoarseProblem(const SparseMatrix & Af) {
@@ -95,16 +91,13 @@ void GenerateCoarseProblem(const SparseMatrix & Af) {
   SparseMatrix * Ac = new SparseMatrix;
   InitializeSparseMatrix(*Ac, geomc);
   GenerateProblem(*Ac, 0, 0, 0);
-
+  SetupHalo(*Ac);
   Vector *rc = new Vector;
   Vector *xc = new Vector;
   Vector * Axf = new Vector;
   InitializeVector(*rc, Ac->localNumberOfRows);
   InitializeVector(*xc, Ac->localNumberOfColumns);
   InitializeVector(*Axf, Af.localNumberOfColumns);
-
-  SetupHalo(*Ac,*xc);
-
   Af.Ac = Ac;
   MGData * mgData = new MGData;
   InitializeMGData(f2cOperator, rc, xc, Axf, *mgData);

@@ -14,7 +14,6 @@
 
 /*!
  @file main.cpp
-
  HPCG routine
  */
 
@@ -63,12 +62,9 @@ using std::endl;
 
 /*!
   Main driver program: Construct synthetic problem, run V&V tests, compute benchmark parameters, run benchmark, report results.
-
   @param[in]  argc Standard argument count.  Should equal 1 (no arguments passed in) or 4 (nx, ny, nz passed in)
   @param[in]  argv Standard argument array.  If argc==1, argv is unused.  If argc==4, argv[1], argv[2], argv[3] will be interpreted as nx, ny, nz, resp.
-
   @return Returns zero on success and a non-zero value otherwise.
-
 */
 int main(int argc, char * argv[]) {
 
@@ -135,7 +131,7 @@ int main(int argc, char * argv[]) {
 
   Vector b, x, xexact;
   GenerateProblem(A, &b, &x, &xexact);
-  SetupHalo(A,x);
+  SetupHalo(A);
   int numberOfMgLevels = 4; // Number of levels including first
   SparseMatrix * curLevelMatrix = &A;
   for (int level = 1; level< numberOfMgLevels; ++level) {
