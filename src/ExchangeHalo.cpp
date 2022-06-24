@@ -39,14 +39,14 @@ void BeginExchangeHalo(const SparseMatrix &A, Vector &x) {
 		sendBuffer[i] = xv[elementsToSend[i]];
 
 	// start all MPI communication
-	MPI_Startall(A.numberOfSendNeighbors * 2, A.halo_requests);
+	MPI_Startall(A.numberOfSendNeighbors * 2, *A.halo_requests);
 
 	return;
 
 }
 
 void EndExchangeHalo(const SparseMatrix &A, Vector &x) {
-	MPI_Waitall(A.numberOfSendNeighbors * 2, A.halo_requests,
+	MPI_Waitall(A.numberOfSendNeighbors * 2, *A.halo_requests,
 			MPI_STATUSES_IGNORE);
 
 	return;
@@ -60,8 +60,10 @@ void EndExchangeHalo(const SparseMatrix &A, Vector &x) {
  */
 void ExchangeHalo(const SparseMatrix &A, Vector &x) {
 
+
+	std::cout << "Halo exchange\n";
 	// only this Vec can be used for halo exhange
-	assert(&A.halo_exchange_vector == &x);
+	assert(A.halo_exchange_vector == &x);
 
 	BeginExchangeHalo(A, x);
 	EndExchangeHalo(A, x);

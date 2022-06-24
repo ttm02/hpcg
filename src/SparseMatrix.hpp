@@ -75,7 +75,7 @@ struct SparseMatrix_STRUCT {
 	local_int_t *receiveLength; //!< lenghts of messages received from neighboring processes
 	local_int_t *sendLength; //!< lenghts of messages sent to neighboring processes
 	double *sendBuffer; //!< send buffer for non-blocking sends
-	Vector& halo_exchange_vector;
+	Vector* halo_exchange_vector;
 
 	MPI_Request **halo_requests; //!< MPI Requests for persistent Communication operations
 #endif

@@ -176,7 +176,7 @@ void SetupHalo(SparseMatrix & A,Vector & x) {
 
 	  // different from original setupHalo_ref: initialize persistent MPI requests
 
-	  int * req_list = new MPI_Request*[A.numberOfSendNeighbors*2];
+	  MPI_Request** req_list = new MPI_Request*[A.numberOfSendNeighbors*2];
 
 	  int MPI_MY_TAG = 99;
 
@@ -197,7 +197,7 @@ void SetupHalo(SparseMatrix & A,Vector & x) {
 
 
 	  A.halo_requests=req_list;
-	  A.halo_exchange_vector=x;
+	  A.halo_exchange_vector=&x;
 
 	#endif
 	// ifdef HPCG_NO_MPI
