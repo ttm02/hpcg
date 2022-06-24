@@ -36,7 +36,7 @@
   for communication of boundary values of this process.
 
   @param[inout] A    The known system matrix
-  @param[in] x    The vector that will be used for halo exchange
+  @param[inout] x    The vector that will be used for halo exchange, will be resiyed to also fit remote elems
 
   @see ExchangeHalo
 */
@@ -174,9 +174,28 @@ void SetupHalo(SparseMatrix & A,Vector & x) {
 	#endif
 
 
-	  // different from original setupHalo_ref: initialize persistent MPI requests
+	  A.halo_exchange_vector=NULL;
+	  A.halo_requests=new MPI_Request[A.numberOfSendNeighbors*2];
+	  // we can reserve mem at this point, but the MPI init calls will take place later
 
-	  MPI_Request* req_list = new MPI_Request[A.numberOfSendNeighbors*2];
+	#endif
+	// ifdef HPCG_NO_MPI
+}
+/*!
+  Register a Halo Vector to use for halo exchange.
+  Registration is necessary if one wants to use non-blocking halo exchange
+
+  @param[inout] A    The known system matrix
+  @param[inout] x    The vector that will be used for halo exchange, will be resized to also fit remote elems
+
+  @see BeginExchangeHalo
+  @see EndExchangeHalo
+*/
+void RegisterHaloVector(SparseMatrix & A,Vector & x)
+{
+	  ResizeVector(x, A.localNumberOfColumns);
+
+	  assert(A.halo_exchange_vector==NULL);
 
 	  int MPI_MY_TAG = 99;
 
@@ -184,23 +203,38 @@ void SetupHalo(SparseMatrix & A,Vector & x) {
 	  // Externals are at end of locals
 	  //
 	  double * x_external = (double *) x.values + A.localNumberOfRows;
+	  double* sendBuffer= A.sendBuffer;
 
 	  for (local_int_t i = 0; i < A.numberOfSendNeighbors; ++i) {
-		  local_int_t n_recv = receiveLength[i];
+		  local_int_t n_recv = A.receiveLength[i];
+		  MPI_Recv_init(x_external, n_recv, MPI_DOUBLE, A.neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD, &A.halo_requests[i]);
 		  x_external += n_recv;
 
-		  MPI_Recv_init(x_external, n_recv, MPI_DOUBLE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD, &req_list[i]);
-		  local_int_t n_send = sendLength[i];
-		  MPI_Send_init(sendBuffer, n_send, MPI_DOUBLE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD,&req_list[i]+A.numberOfSendNeighbors);
-		     sendBuffer += n_send;
+		  local_int_t n_send = A.sendLength[i];
+		  MPI_Send_init(sendBuffer, n_send, MPI_DOUBLE, A.neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD,&A.halo_requests[i+A.numberOfSendNeighbors]);
+		  sendBuffer += n_send;
 	}
 
-
-	  A.halo_requests=req_list;
 	  A.halo_exchange_vector=&x;
-
-	#endif
-	// ifdef HPCG_NO_MPI
+}
 
 
+/*!
+  De-Registers a Halo Vector to use for halo exchange.
+
+  @param[inout] A    The known system matrix
+  @param[in] x    The vector that will be used for halo exchange,
+
+  @see BeginExchangeHalo
+  @see EndExchangeHalo
+*/
+void DeRegisterHaloVector(SparseMatrix & A,Vector & x)
+{
+	  assert(A.halo_exchange_vector==&x);
+
+	  // free old requests
+	  for (int i = 0; i < A.numberOfSendNeighbors*2; ++i) {
+	  	MPI_Request_free(&A.halo_requests[i]);
+	  }
+	  A.halo_exchange_vector=NULL;
 }

@@ -22,6 +22,7 @@
 #define VECTOR_HPP
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
 #include "Geometry.hpp"
 
 struct Vector_STRUCT {
@@ -35,6 +36,26 @@ struct Vector_STRUCT {
 
 };
 typedef struct Vector_STRUCT Vector;
+
+
+/*!
+  resizes the vector.
+
+  @param[inout] v
+  @param[in] localLength Length of local portion of input vector
+ */
+inline void ResizeVector(Vector & v, local_int_t localLength) {
+	assert(v.values!=0);
+	local_int_t old_len=v.localLength;
+	assert(old_len <= localLength);
+	double* old_vals= v.values;
+  v.localLength = localLength;
+  v.values = new double[localLength];
+
+  memcpy(v.values,old_vals,sizeof(double)*old_len);
+  delete [] old_vals;
+    return;
+}
 
 /*!
   Initializes input vector.
