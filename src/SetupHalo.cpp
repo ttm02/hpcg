@@ -193,12 +193,11 @@ void SetupHalo(SparseMatrix & A,Vector & x) {
 		  local_int_t n_send = sendLength[i];
 		  MPI_Send_init(sendBuffer, n_send, MPI_DOUBLE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD,req_list[i]+A.numberOfSendNeighbors);
 		     sendBuffer += n_send;
-
-
 	}
 
 
 	  A.halo_requests=req_list;
+	  A.halo_exchange_vector=x;
 
 	#endif
 	// ifdef HPCG_NO_MPI
