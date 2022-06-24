@@ -39,14 +39,14 @@ void BeginExchangeHalo(const SparseMatrix &A, Vector &x) {
 		sendBuffer[i] = xv[elementsToSend[i]];
 
 	// start all MPI communication
-	MPI_Startall(A.numberOfSendNeighbors * 2, *A.halo_requests);
+	MPI_Startall(A.numberOfSendNeighbors * 2, A.halo_requests);
 
 	return;
 
 }
 
 void EndExchangeHalo(const SparseMatrix &A, Vector &x) {
-	MPI_Waitall(A.numberOfSendNeighbors * 2, *A.halo_requests,
+	MPI_Waitall(A.numberOfSendNeighbors * 2, A.halo_requests,
 			MPI_STATUSES_IGNORE);
 
 	return;

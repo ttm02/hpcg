@@ -176,7 +176,7 @@ void SetupHalo(SparseMatrix & A,Vector & x) {
 
 	  // different from original setupHalo_ref: initialize persistent MPI requests
 
-	  MPI_Request** req_list = new MPI_Request*[A.numberOfSendNeighbors*2];
+	  MPI_Request* req_list = new MPI_Request[A.numberOfSendNeighbors*2];
 
 	  int MPI_MY_TAG = 99;
 
@@ -189,9 +189,9 @@ void SetupHalo(SparseMatrix & A,Vector & x) {
 		  local_int_t n_recv = receiveLength[i];
 		  x_external += n_recv;
 
-		  MPI_Recv_init(x_external, n_recv, MPI_DOUBLE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD, req_list[i]);
+		  MPI_Recv_init(x_external, n_recv, MPI_DOUBLE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD, &req_list[i]);
 		  local_int_t n_send = sendLength[i];
-		  MPI_Send_init(sendBuffer, n_send, MPI_DOUBLE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD,req_list[i]+A.numberOfSendNeighbors);
+		  MPI_Send_init(sendBuffer, n_send, MPI_DOUBLE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD,&req_list[i]+A.numberOfSendNeighbors);
 		     sendBuffer += n_send;
 	}
 

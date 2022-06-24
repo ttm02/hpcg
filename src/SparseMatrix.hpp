@@ -77,7 +77,7 @@ struct SparseMatrix_STRUCT {
 	double *sendBuffer; //!< send buffer for non-blocking sends
 	Vector* halo_exchange_vector;
 
-	MPI_Request **halo_requests; //!< MPI Requests for persistent Communication operations
+	MPI_Request *halo_requests; //!< MPI Requests for persistent Communication operations
 #endif
 };
 typedef struct SparseMatrix_STRUCT SparseMatrix;
@@ -196,7 +196,7 @@ inline void DeleteMatrix(SparseMatrix &A) {
 	if (A.halo_requests) {
 
 		for (local_int_t i = 0; i < A.numberOfSendNeighbors * 2; ++i) {
-			MPI_Request_free(A.halo_requests[i]);
+			MPI_Request_free(&A.halo_requests[i]);
 		}
 
 		delete[] A.halo_requests;
