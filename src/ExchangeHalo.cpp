@@ -54,7 +54,7 @@ void ExchangeHalo(const SparseMatrix & A, Vector & x) {
   //  wait call below.
   //
 
-  int MPI_MY_TAG = 99;
+  int MPI_MY_TAG = 1337;// use a different tag from the non-blocking halo exchanges
 
   MPI_Request * request = new MPI_Request[num_neighbors];
 

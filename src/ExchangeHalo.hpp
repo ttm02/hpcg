@@ -19,10 +19,20 @@
 
 void ExchangeHalo(const SparseMatrix & A, Vector & x);
 
-// we need inlining, so that our compiler analysis can work properly
-// additionally these functions are quite small, so inlining is a good idear either way
+// these functions are quite small, so inlining is a good idear either way
 //TODO veryfi in godbolt: additionally this should eliminate the unused parameter if compiled without assertion
-inline void BeginExchangeHalo(const SparseMatrix &A, Vector &x) {
+inline void BeginExchangeHaloRecv(const SparseMatrix &A, Vector &x) {
+
+	assert(A.halo_exchange_vector==&x);
+
+	// start MPI communication
+	MPI_Startall(A.numberOfSendNeighbors, A.halo_requests);
+
+	return;
+
+}
+
+inline void BeginExchangeHaloSend(const SparseMatrix &A, Vector &x) {
 
 	assert(A.halo_exchange_vector==&x);
 	double *sendBuffer = A.sendBuffer;
@@ -38,8 +48,9 @@ inline void BeginExchangeHalo(const SparseMatrix &A, Vector &x) {
 	for (local_int_t i = 0; i < totalToBeSent; i++)
 		sendBuffer[i] = xv[elementsToSend[i]];
 
-	// start all MPI communication
-	MPI_Startall(A.numberOfSendNeighbors * 2, A.halo_requests);
+	// start MPI communication
+	// send are second batch of requests in list
+	MPI_Startall(A.numberOfSendNeighbors, &A.halo_requests[A.numberOfSendNeighbors]);
 
 	return;
 

@@ -88,7 +88,8 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
 #endif
   // p is of length ncols, copy x to p for sparse MV operation
   CopyVector(x, p);
-  BeginExchangeHalo(A, p);
+  BeginExchangeHaloRecv(A, p);
+  BeginExchangeHaloSend(A, p);
   EndExchangeHalo(A, p);
   TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
   TICK(); ComputeWAXPBY(nrow, 1.0, b, -1.0, Ap, r, A.isWaxpbyOptimized);  TOCK(t2); // r = b - Ax (x stored in p)
@@ -102,7 +103,7 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
   normr0 = normr;
 
   // Start iterations
-
+  BeginExchangeHaloRecv(A, p);
   for (int k=1; k<=max_iter && normr/normr0 > tolerance; k++ ) {
     TICK();
     if (doPreconditioning){
@@ -115,16 +116,22 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
 
     if (k == 1) {
       TICK(); ComputeWAXPBY(nrow, 1.0, z, 0.0, z, p, A.isWaxpbyOptimized); TOCK(t2); // Copy Mr to p
+      BeginExchangeHaloSend(A, p);
       TICK(); ComputeDotProduct (nrow, r, z, rtz, t4, A.isDotProductOptimized); TOCK(t1); // rtz = r'*z
     } else {
       oldrtz = rtz;
       TICK(); ComputeDotProduct (nrow, r, z, rtz, t4, A.isDotProductOptimized); TOCK(t1); // rtz = r'*z
       beta = rtz/oldrtz;
       TICK(); ComputeWAXPBY (nrow, 1.0, z, beta, p, p, A.isWaxpbyOptimized);  TOCK(t2); // p = beta*p + z
+      BeginExchangeHaloSend(A, p);
+      //TODO this is no overlap for send
     }
-BeginExchangeHalo(A, p);
+
 EndExchangeHalo(A, p);
     TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
+    BeginExchangeHaloRecv(A, p);
+    // all other operations only use the local part of this vec
+    // so communication on the other part is allowed
     TICK(); ComputeDotProduct(nrow, p, Ap, pAp, t4, A.isDotProductOptimized); TOCK(t1); // alpha = p'*Ap
     alpha = rtz/pAp;
     TICK(); ComputeWAXPBY(nrow, 1.0, x, alpha, p, x, A.isWaxpbyOptimized);// x = x + alpha*p
@@ -138,6 +145,8 @@ EndExchangeHalo(A, p);
     niters = k;
   }
 
+  BeginExchangeHaloSend(A, p);// for the last iteration, also post matching sends, so that recvs can be fulfilled
+  EndExchangeHalo(A, p);// end receive
   DeRegisterHaloVector(A, p);
 
   // Store times

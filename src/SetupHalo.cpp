@@ -191,6 +191,8 @@ void SetupHalo(SparseMatrix & A) {
   @see BeginExchangeHalo
   @see EndExchangeHalo
 */
+
+//TODO we need to inline the De-Register funcs so that our compiler analysis can get the score of the requests
 void RegisterHaloVector(const SparseMatrix & A,Vector & x)
 {
 	  ResizeVector(x, A.localNumberOfColumns);
