@@ -135,7 +135,7 @@ int main(int argc, char * argv[]) {
 
   Vector b, x, xexact;
   GenerateProblem(A, &b, &x, &xexact);
-  SetupHalo(A);
+  SetupHalo(A,x);
   int numberOfMgLevels = 4; // Number of levels including first
   SparseMatrix * curLevelMatrix = &A;
   for (int level = 1; level< numberOfMgLevels; ++level) {
