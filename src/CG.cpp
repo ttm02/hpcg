@@ -30,6 +30,8 @@
 #include "ComputeMG.hpp"
 #include "ComputeDotProduct.hpp"
 #include "ComputeWAXPBY.hpp"
+#include "SetupHalo.hpp"
+#include "ExchangeHalo.hpp"
 
 
 // Use TICK and TOCK to time a code section in MATLAB-like fashion
@@ -75,6 +77,8 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
   Vector & p = data.p; // Direction vector (in MPI mode ncol>=nrow)
   Vector & Ap = data.Ap;
 
+  RegisterHaloVector(A, p);
+
   if (!doPreconditioning && A.geom->rank==0) HPCG_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
 
 #ifdef HPCG_DEBUG
@@ -84,6 +88,8 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
 #endif
   // p is of length ncols, copy x to p for sparse MV operation
   CopyVector(x, p);
+  BeginExchangeHalo(A, p);
+  EndExchangeHalo(A, p);
   TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
   TICK(); ComputeWAXPBY(nrow, 1.0, b, -1.0, Ap, r, A.isWaxpbyOptimized);  TOCK(t2); // r = b - Ax (x stored in p)
   TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); TOCK(t1);
@@ -99,8 +105,10 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
 
   for (int k=1; k<=max_iter && normr/normr0 > tolerance; k++ ) {
     TICK();
-    if (doPreconditioning)
+    if (doPreconditioning){
+    	//TODO we also need non-blocking comm in preconditioner
       ComputeMG(A, r, z); // Apply preconditioner
+      }
     else
       CopyVector (r, z); // copy r to z (no preconditioning)
     TOCK(t5); // Preconditioner apply time
@@ -114,7 +122,8 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
       beta = rtz/oldrtz;
       TICK(); ComputeWAXPBY (nrow, 1.0, z, beta, p, p, A.isWaxpbyOptimized);  TOCK(t2); // p = beta*p + z
     }
-
+BeginExchangeHalo(A, p);
+EndExchangeHalo(A, p);
     TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
     TICK(); ComputeDotProduct(nrow, p, Ap, pAp, t4, A.isDotProductOptimized); TOCK(t1); // alpha = p'*Ap
     alpha = rtz/pAp;
@@ -128,6 +137,8 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
 #endif
     niters = k;
   }
+
+  DeRegisterHaloVector(A, p);
 
   // Store times
   times[1] += t1; // dot-product time

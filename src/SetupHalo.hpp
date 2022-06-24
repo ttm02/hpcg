@@ -17,7 +17,7 @@
 #include "SparseMatrix.hpp"
 
 void SetupHalo(SparseMatrix & A);
-void RegisterHaloVector(SparseMatrix & A,Vector & x);
-void DeRegisterHaloVector(SparseMatrix & A,Vector & x);
+void RegisterHaloVector(const SparseMatrix & A,Vector & x);
+void DeRegisterHaloVector(const SparseMatrix & A,Vector & x);
 
 #endif // SETUPHALO_HPP

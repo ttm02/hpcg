@@ -191,7 +191,7 @@ void SetupHalo(SparseMatrix & A) {
   @see BeginExchangeHalo
   @see EndExchangeHalo
 */
-void RegisterHaloVector(SparseMatrix & A,Vector & x)
+void RegisterHaloVector(const SparseMatrix & A,Vector & x)
 {
 	  ResizeVector(x, A.localNumberOfColumns);
 
@@ -228,7 +228,7 @@ void RegisterHaloVector(SparseMatrix & A,Vector & x)
   @see BeginExchangeHalo
   @see EndExchangeHalo
 */
-void DeRegisterHaloVector(SparseMatrix & A,Vector & x)
+void DeRegisterHaloVector(const SparseMatrix & A,Vector & x)
 {
 	  assert(A.halo_exchange_vector==&x);
 
