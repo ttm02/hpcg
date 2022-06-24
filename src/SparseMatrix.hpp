@@ -193,12 +193,8 @@ inline void DeleteMatrix(SparseMatrix &A) {
 		delete[] A.sendLength;
 	if (A.sendBuffer)
 		delete[] A.sendBuffer;
+	assert(A.halo_exchange_vector==NULL);
 	if (A.halo_requests) {
-
-		for (local_int_t i = 0; i < A.numberOfSendNeighbors * 2; ++i) {
-			MPI_Request_free(&A.halo_requests[i]);
-		}
-
 		delete[] A.halo_requests;
 	}
 #endif
