@@ -63,9 +63,12 @@ for (local_int_t i = 0; i < A.numberOfSendNeighbors; i++){
 }
 
 inline void EndExchangeHalo(const SparseMatrix &A, Vector &x) {
-	MPI_Waitall(A.numberOfSendNeighbors * 2, A.halo_requests,
-			MPI_STATUSES_IGNORE);
 
+// waitall
+for (local_int_t i = 0; i < A.numberOfSendNeighbors*2; i++){
+
+	MPIOPT_Wait(&A.halo_requests[i],MPI_STATUS_IGNORE);
+}
 	return;
 }
 
