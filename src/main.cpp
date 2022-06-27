@@ -70,6 +70,7 @@ int main(int argc, char * argv[]) {
 
 #ifndef HPCG_NO_MPI
   MPI_Init(&argc, &argv);
+MPIOPT_INIT();
 #endif
 
   HPCG_Params params;
@@ -370,6 +371,7 @@ int main(int argc, char * argv[]) {
 
   // Finish up
 #ifndef HPCG_NO_MPI
+MPIOPT_FINALIZE();
   MPI_Finalize();
 #endif
   return 0;

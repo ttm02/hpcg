@@ -26,7 +26,10 @@ inline void BeginExchangeHaloRecv(const SparseMatrix &A, Vector &x) {
 	assert(A.halo_exchange_vector==&x);
 
 	// start MPI communication
-	MPI_Startall(A.numberOfSendNeighbors, A.halo_requests);
+for (local_int_t i = 0; i < A.numberOfSendNeighbors; i++){
+
+	MPIOPT_Start(&A.halo_requests[i]);
+}
 
 	return;
 
@@ -50,7 +53,10 @@ inline void BeginExchangeHaloSend(const SparseMatrix &A, Vector &x) {
 
 	// start MPI communication
 	// send are second batch of requests in list
-	MPI_Startall(A.numberOfSendNeighbors, &A.halo_requests[A.numberOfSendNeighbors]);
+for (local_int_t i = 0; i < A.numberOfSendNeighbors; i++){
+
+	MPIOPT_Start(&A.halo_requests[i+A.numberOfSendNeighbors]);
+}
 
 	return;
 

@@ -107,7 +107,7 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
   for (int k=1; k<=max_iter && normr/normr0 > tolerance; k++ ) {
     TICK();
     if (doPreconditioning){
-    	//TODO we also need non-blocking comm in preconditioner
+    	//TODO we also need non-blocking comm in preconditioner?
       ComputeMG(A, r, z); // Apply preconditioner
       }
     else
