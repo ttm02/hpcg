@@ -96,6 +96,50 @@ int OptimizeProblem(SparseMatrix & A, CGData & data, Vector & b, Vector & x, Vec
     colors[i] = counters[colors[i]]++;
 #endif
 
+
+  // CSR Matrix to CSC for SPMV (to split global and local parts)
+  // this will automatically order the columns in the way, that first come the local ones and after this the global
+
+  // get nonzero per column
+  A.nonzerosInCol = new local_int_t[A.localNumberOfColumns]();// zero initialized
+  for (local_int_t row = 0; row < A.localNumberOfRows; ++row) {
+	for (local_int_t j = 0; j < A.nonzerosInRow[row]; ++j) {
+		A.nonzerosInCol[A.mtxIndL[row][j]]+=1;
+	}
+}
+
+
+  // create necessary data structures
+  A.mtxCSCIndL = new local_int_t*[A.localNumberOfColumns];
+  A.mtxCSCIndL[0] = new local_int_t[A.localNumberOfNonzeros];
+  A.matrixValuesCSC= new double*[A.localNumberOfColumns];
+  A.matrixValuesCSC[0]= new double[A.localNumberOfNonzeros];
+
+  local_int_t pos = A.nonzerosInCol[0];
+  for (int col = 1; col < A.localNumberOfColumns; ++col) {
+	  A.mtxCSCIndL[col]= A.mtxCSCIndL[0]+pos;
+	  A.matrixValuesCSC[col]=A.matrixValuesCSC[0]+pos;
+	  pos+=A.nonzerosInCol[col];
+}
+
+
+// and copy the matrix content
+  auto current_nonzerosInCol = new local_int_t[A.localNumberOfColumns]();// zero initialized
+
+  for (local_int_t row = 0; row < A.localNumberOfRows; ++row) {
+	for (local_int_t j = 0; j < A.nonzerosInRow[row]; ++j) {
+		local_int_t col= A.mtxIndL[row][j];
+		local_int_t jj= current_nonzerosInCol[col];
+		A.mtxCSCIndL[col][jj]=row;
+		A.matrixValuesCSC[col][jj]=A.matrixValues[row][j];
+					current_nonzerosInCol[col]+=1;
+	}
+
+	//print val 0,0
+	std::cout << "0,0: "<< A.matrixValues[0][0]<<","<<A.matrixValuesCSC[0][0]<<"\n";
+}
+
+
   return 0;
 }
 

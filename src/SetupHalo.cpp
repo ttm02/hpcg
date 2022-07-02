@@ -155,6 +155,7 @@ void SetupHalo(SparseMatrix & A) {
 
 	  // Store contents in our matrix struct
 	  A.numberOfExternalValues = externalToLocalMap.size();
+	  A.local_local_NumberOfColumns=A.localNumberOfRows;
 	  A.localNumberOfColumns = A.localNumberOfRows + A.numberOfExternalValues;
 	  A.numberOfSendNeighbors = sendList.size();
 	  A.totalToBeSent = totalToBeSent;

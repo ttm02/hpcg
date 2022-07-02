@@ -20,6 +20,10 @@
 
 #include "ComputeSPMV.hpp"
 #include "ComputeSPMV_ref.hpp"
+#include "ExchangeHalo.hpp"
+
+//DEBUG
+#include <iomanip>
 
 /*!
   Routine to compute sparse matrix vector product y = Ax where:
@@ -43,22 +47,109 @@ int ComputeSPMV( const SparseMatrix & A, Vector & x, Vector & y) {
   assert(y.localLength>=A.localNumberOfRows);
 
 
-  // halo exchange was done before entering
+  // Begin halo exchange was called before entering
+
   const double * const xv = x.values;
   double * const yv = y.values;
   const local_int_t nrow = A.localNumberOfRows;
+
+  // init result
+  for (local_int_t i = 0; i < nrow; ++i) {
+	yv[i]=0;
+}
+
+
+
+  // local part
 #ifndef HPCG_NO_OPENMP
   #pragma omp parallel for
 #endif
-  for (local_int_t i=0; i< nrow; i++)  {
-    double sum = 0.0;
-    const double * const cur_vals = A.matrixValues[i];
-    const local_int_t * const cur_inds = A.mtxIndL[i];
-    const int cur_nnz = A.nonzerosInRow[i];
+  for (local_int_t i= 0; i< A.local_local_NumberOfColumns; i++)  {
 
-    for (int j=0; j< cur_nnz; j++)
-      sum += cur_vals[j]*xv[cur_inds[j]];
-    yv[i] = sum;
+    const double * const cur_vals = A.matrixValuesCSC[i];
+    const local_int_t * const cur_inds = A.mtxCSCIndL[i];
+    const int cur_nnz = A.nonzerosInCol[i];
+
+    for (int j=0; j< cur_nnz; j++){
+    	local_int_t row=cur_inds[j];
+      yv[row] += cur_vals[j]*xv[i];
+    }
   }
+
+  EndExchangeHaloRecv(A, x);
+
+  // non-local part
+  // local part
+#ifndef HPCG_NO_OPENMP
+  #pragma omp parallel for
+#endif
+  for (local_int_t i= A.local_local_NumberOfColumns; i< A.localNumberOfColumns; i++)  {
+
+    const double * const cur_vals = A.matrixValuesCSC[i];
+    const local_int_t * const cur_inds = A.mtxCSCIndL[i];
+    const int cur_nnz = A.nonzerosInCol[i];
+
+    for (int j=0; j< cur_nnz; j++){
+    	local_int_t row=cur_inds[j];
+      yv[row] += cur_vals[j]*xv[i];
+    }
+  }
+
+  // we need to make shure all sends are completed as well
+  // as Send has started before entering this func, the recvs will complete and no deadlock will be present
+  // during send, the values to send where collected into a seperate buffer, so no isuses with override
+  EndExchangeHaloSend(A, x);
+
+  //DEBUGGING: why is CSC not working correctly?
+  Vector yy;
+  InitializeVector(yy, A.localNumberOfRows);
+  ComputeSPMV_ref(A, x, yy);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+
+
+  //assert matrix is same
+  int differences=0;
+
+ for (int row = 0; row < A.localNumberOfRows; ++row) {
+	 for (int j = 0; j < A.nonzerosInRow[row]; ++j) {
+		  int col= A.mtxIndL[row][j];
+		  double valA=A.matrixValues[row][j];
+		  int i=0;
+		    for (i = 0; i < A.nonzerosInCol[col]; ++i) {
+		  	if (row==A.mtxCSCIndL[col][i])
+		  		break;
+		  }
+		    double valB=A.matrixValuesCSC[col][i];
+		    if (valA!=valB){
+		    	std::cout << "Cmp Val " << row<<","<<col<< "("<<valA<<","<<valB<<")\n";
+		    }
+		    assert(valA==valB);
+	}
+}
+
+
+
+
+  if (rank==0){
+
+	  int vec_differences=0;
+
+	  std::cout << "My, ref\n";
+
+	  for (int i = 0; i < nrow; ++i) {
+		std::cout << std::setw(10) << yv[i] << "," <<  std::setw(10) << yy.values[i]<<"\n";
+		if(yv[i] !=yy.values[i]){
+			differences++;
+		}
+	}
+
+	  assert(vec_differences==0);
+  }
+
+
+
+
   return 0;
 }

@@ -66,6 +66,14 @@ struct SparseMatrix_STRUCT {
 	mutable MGData *mgData; // Pointer to the coarse level data for this fine matrix
 	void *optimizationData; // pointer that can be used to store implementation-specific data
 
+	double** matrixValuesCSC;
+	local_int_t* nonzerosInCol;
+	local_int_t **mtxCSCIndL; //!< matrix indices as local values for CSC storage format
+	local_int_t local_local_NumberOfColumns;// local number o cols managed by this process
+	// in contrast to localNumberOfColumns which is including the halo values
+
+
+
 #ifndef HPCG_NO_MPI
 	local_int_t numberOfExternalValues; //!< number of entries that are external to this process
 	int numberOfSendNeighbors; //!< number of neighboring processes that will be send local data
@@ -150,6 +158,8 @@ inline void ReplaceMatrixDiagonal(SparseMatrix &A, Vector &diagonal) {
 	for (local_int_t i = 0; i < A.localNumberOfRows; ++i)
 		*(curDiagA[i]) = dv[i];
 	return;
+
+	//TODO Also implement this on my CSC data!
 }
 /*!
  Deallocates the members of the data structure of the known system matrix provided they are not 0.

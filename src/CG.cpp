@@ -90,7 +90,7 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
   CopyVector(x, p);
   BeginExchangeHaloRecv(A, p);
   BeginExchangeHaloSend(A, p);
-  EndExchangeHalo(A, p);
+  //EndExchangeHalo(A, p);
   TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
   TICK(); ComputeWAXPBY(nrow, 1.0, b, -1.0, Ap, r, A.isWaxpbyOptimized);  TOCK(t2); // r = b - Ax (x stored in p)
   TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); TOCK(t1);
@@ -127,7 +127,8 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
       //TODO this is no overlap for send
     }
 
-EndExchangeHalo(A, p);
+//EndExchangeHaloSend(A, p);
+//EndExchangeHaloRecv(A, p);
     TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
     BeginExchangeHaloRecv(A, p);
     // all other operations only use the local part of this vec
@@ -146,7 +147,8 @@ EndExchangeHalo(A, p);
   }
 
   BeginExchangeHaloSend(A, p);// for the last iteration, also post matching sends, so that recvs can be fulfilled
-  EndExchangeHalo(A, p);// end receive
+  EndExchangeHaloSend(A, p);
+  EndExchangeHaloRecv(A, p);// end receive
   DeRegisterHaloVector(A, p);
 
   // Store times

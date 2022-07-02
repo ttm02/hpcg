@@ -56,8 +56,15 @@ inline void BeginExchangeHaloSend(const SparseMatrix &A, Vector &x) {
 
 }
 
-inline void EndExchangeHalo(const SparseMatrix &A, Vector &x) {
-	MPI_Waitall(A.numberOfSendNeighbors * 2, A.halo_requests,
+inline void EndExchangeHaloSend(const SparseMatrix &A, Vector &x) {
+	MPI_Waitall(A.numberOfSendNeighbors , &A.halo_requests[A.numberOfSendNeighbors],
+			MPI_STATUSES_IGNORE);
+
+	return;
+}
+
+inline void EndExchangeHaloRecv(const SparseMatrix &A, Vector &x) {
+	MPI_Waitall(A.numberOfSendNeighbors , A.halo_requests,
 			MPI_STATUSES_IGNORE);
 
 	return;
