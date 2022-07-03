@@ -67,6 +67,7 @@ struct SparseMatrix_STRUCT {
 	void *optimizationData; // pointer that can be used to store implementation-specific data
 
 	double** matrixValuesCSC;
+	double **matrixDiagonalCSC;
 	local_int_t* nonzerosInCol;
 	local_int_t **mtxCSCIndL; //!< matrix indices as local values for CSC storage format
 	local_int_t local_local_NumberOfColumns;// local number o cols managed by this process
@@ -141,8 +142,11 @@ inline void CopyMatrixDiagonal(SparseMatrix &A, Vector &diagonal) {
 	double **curDiagA = A.matrixDiagonal;
 	double *dv = diagonal.values;
 	assert(A.localNumberOfRows == diagonal.localLength);
-	for (local_int_t i = 0; i < A.localNumberOfRows; ++i)
+	for (local_int_t i = 0; i < A.localNumberOfRows; ++i){
 		dv[i] = *(curDiagA[i]);
+	if (A.matrixDiagonalCSC!=0){
+		assert(*(A.matrixDiagonalCSC[i])==dv[i]);
+	}}
 	return;
 }
 /*!
@@ -155,11 +159,13 @@ inline void ReplaceMatrixDiagonal(SparseMatrix &A, Vector &diagonal) {
 	double **curDiagA = A.matrixDiagonal;
 	double *dv = diagonal.values;
 	assert(A.localNumberOfRows == diagonal.localLength);
-	for (local_int_t i = 0; i < A.localNumberOfRows; ++i)
+	for (local_int_t i = 0; i < A.localNumberOfRows; ++i){
 		*(curDiagA[i]) = dv[i];
+		if (A.matrixDiagonalCSC!=0){
+			*(A.matrixDiagonalCSC[i])=dv[i];
+		}
+	}
 	return;
-
-	//TODO Also implement this on my CSC data!
 }
 /*!
  Deallocates the members of the data structure of the known system matrix provided they are not 0.

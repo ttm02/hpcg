@@ -1,4 +1,3 @@
-
 //@HEADER
 // ***************************************************
 //
@@ -20,24 +19,25 @@
 
 #include "OptimizeProblem.hpp"
 /*!
-  Optimizes the data structures used for CG iteration to increase the
-  performance of the benchmark version of the preconditioned CG algorithm.
+ Optimizes the data structures used for CG iteration to increase the
+ performance of the benchmark version of the preconditioned CG algorithm.
 
-  @param[inout] A      The known system matrix, also contains the MG hierarchy in attributes Ac and mgData.
-  @param[inout] data   The data structure with all necessary CG vectors preallocated
-  @param[inout] b      The known right hand side vector
-  @param[inout] x      The solution vector to be computed in future CG iteration
-  @param[inout] xexact The exact solution vector
+ @param[inout] A      The known system matrix, also contains the MG hierarchy in attributes Ac and mgData.
+ @param[inout] data   The data structure with all necessary CG vectors preallocated
+ @param[inout] b      The known right hand side vector
+ @param[inout] x      The solution vector to be computed in future CG iteration
+ @param[inout] xexact The exact solution vector
 
-  @return returns 0 upon success and non-zero otherwise
+ @return returns 0 upon success and non-zero otherwise
 
-  @see GenerateGeometry
-  @see GenerateProblem
-*/
-int OptimizeProblem(SparseMatrix & A, CGData & data, Vector & b, Vector & x, Vector & xexact) {
+ @see GenerateGeometry
+ @see GenerateProblem
+ */
+int OptimizeProblem(SparseMatrix &A, CGData &data, Vector &b, Vector &x,
+		Vector &xexact) {
 
-  // This function can be used to completely transform any part of the data structures.
-  // Right now it does nothing, so compiling with a check for unused variables results in complaints
+	// This function can be used to completely transform any part of the data structures.
+	// Right now it does nothing, so compiling with a check for unused variables results in complaints
 
 #if defined(HPCG_USE_MULTICOLORING)
   const local_int_t nrow = A.localNumberOfRows;
@@ -96,56 +96,59 @@ int OptimizeProblem(SparseMatrix & A, CGData & data, Vector & b, Vector & x, Vec
     colors[i] = counters[colors[i]]++;
 #endif
 
+	// CSR Matrix to CSC for SPMV (to split global and local parts)
+	// this will automatically order the columns in the way, that first come the local ones and after this the global
 
-  // CSR Matrix to CSC for SPMV (to split global and local parts)
-  // this will automatically order the columns in the way, that first come the local ones and after this the global
-
-  // get nonzero per column
-  A.nonzerosInCol = new local_int_t[A.localNumberOfColumns]();// zero initialized
-  for (local_int_t row = 0; row < A.localNumberOfRows; ++row) {
-	for (local_int_t j = 0; j < A.nonzerosInRow[row]; ++j) {
-		A.nonzerosInCol[A.mtxIndL[row][j]]+=1;
+	// get nonzero per column
+	A.nonzerosInCol = new local_int_t[A.localNumberOfColumns](); // zero initialized
+	for (local_int_t row = 0; row < A.localNumberOfRows; ++row) {
+		for (local_int_t j = 0; j < A.nonzerosInRow[row]; ++j) {
+			A.nonzerosInCol[A.mtxIndL[row][j]] += 1;
+		}
 	}
-}
 
+	// create necessary data structures
+	A.mtxCSCIndL = new local_int_t*[A.localNumberOfColumns];
+	A.mtxCSCIndL[0] = new local_int_t[A.localNumberOfNonzeros];
+	A.matrixValuesCSC = new double*[A.localNumberOfColumns];
+	A.matrixValuesCSC[0] = new double[A.localNumberOfNonzeros];
 
-  // create necessary data structures
-  A.mtxCSCIndL = new local_int_t*[A.localNumberOfColumns];
-  A.mtxCSCIndL[0] = new local_int_t[A.localNumberOfNonzeros];
-  A.matrixValuesCSC= new double*[A.localNumberOfColumns];
-  A.matrixValuesCSC[0]= new double[A.localNumberOfNonzeros];
+	A.matrixDiagonalCSC = new double*[A.localNumberOfRows];
 
-  local_int_t pos = A.nonzerosInCol[0];
-  for (int col = 1; col < A.localNumberOfColumns; ++col) {
-	  A.mtxCSCIndL[col]= A.mtxCSCIndL[0]+pos;
-	  A.matrixValuesCSC[col]=A.matrixValuesCSC[0]+pos;
-	  pos+=A.nonzerosInCol[col];
-}
+	local_int_t pos = A.nonzerosInCol[0];
+	for (int col = 1; col < A.localNumberOfColumns; ++col) {
+		A.mtxCSCIndL[col] = A.mtxCSCIndL[0] + pos;
+		A.matrixValuesCSC[col] = A.matrixValuesCSC[0] + pos;
+		pos += A.nonzerosInCol[col];
+	}
 
+	local_int_t diagonal = 0;
 
 // and copy the matrix content
-  auto current_nonzerosInCol = new local_int_t[A.localNumberOfColumns]();// zero initialized
+	auto current_nonzerosInCol = new local_int_t[A.localNumberOfColumns](); // zero initialized
 
-  for (local_int_t row = 0; row < A.localNumberOfRows; ++row) {
-	for (local_int_t j = 0; j < A.nonzerosInRow[row]; ++j) {
-		local_int_t col= A.mtxIndL[row][j];
-		local_int_t jj= current_nonzerosInCol[col];
-		A.mtxCSCIndL[col][jj]=row;
-		A.matrixValuesCSC[col][jj]=A.matrixValues[row][j];
-					current_nonzerosInCol[col]+=1;
+	for (local_int_t row = 0; row < A.localNumberOfRows; ++row) {
+		for (local_int_t j = 0; j < A.nonzerosInRow[row]; ++j) {
+			local_int_t col = A.mtxIndL[row][j];
+			local_int_t jj = current_nonzerosInCol[col];
+			A.mtxCSCIndL[col][jj] = row;
+			A.matrixValuesCSC[col][jj] = A.matrixValues[row][j];
+			if (&A.matrixValues[row][j] == A.matrixDiagonal[diagonal]) {
+				// this value is in the diagonal
+				A.matrixDiagonalCSC[diagonal] = &A.matrixValuesCSC[col][jj];
+				diagonal++;
+			}
+			current_nonzerosInCol[col] += 1;
+		}
+
 	}
 
-	//print val 0,0
-	std::cout << "0,0: "<< A.matrixValues[0][0]<<","<<A.matrixValuesCSC[0][0]<<"\n";
-}
-
-
-  return 0;
+	return 0;
 }
 
 // Helper function (see OptimizeProblem.hpp for details)
-double OptimizeProblemMemoryUse(const SparseMatrix & A) {
+double OptimizeProblemMemoryUse(const SparseMatrix &A) {
 
-  return 0.0;
+	return 0.0;
 
 }

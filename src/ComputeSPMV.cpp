@@ -100,7 +100,7 @@ int ComputeSPMV( const SparseMatrix & A, Vector & x, Vector & y) {
   // during send, the values to send where collected into a seperate buffer, so no isuses with override
   EndExchangeHaloSend(A, x);
 
-  //DEBUGGING: why is CSC not working correctly?
+  //For DEBUGGING
   Vector yy;
   InitializeVector(yy, A.localNumberOfRows);
   ComputeSPMV_ref(A, x, yy);
@@ -123,30 +123,33 @@ int ComputeSPMV( const SparseMatrix & A, Vector & x, Vector & y) {
 		  }
 		    double valB=A.matrixValuesCSC[col][i];
 		    if (valA!=valB){
-		    	std::cout << "Cmp Val " << row<<","<<col<< "("<<valA<<","<<valB<<")\n";
+		    	//std::cout << "Cmp Val " << row<<","<<col<< "("<<valA<<","<<valB<<")\n";
+		    	differences++;
 		    }
 		    assert(valA==valB);
 	}
 }
 
-
-
-
-  if (rank==0){
+ if (differences!=0){
+	  std::cout << "Matrix differences!!!\n";
+ }
 
 	  int vec_differences=0;
 
-	  std::cout << "My, ref\n";
+	  //std::cout << "My, ref\n";
 
 	  for (int i = 0; i < nrow; ++i) {
-		std::cout << std::setw(10) << yv[i] << "," <<  std::setw(10) << yy.values[i]<<"\n";
+		//std::cout << std::setw(10) << yv[i] << "," <<  std::setw(10) << yy.values[i]<<"\n";
 		if(yv[i] !=yy.values[i]){
 			differences++;
 		}
 	}
 
 	  assert(vec_differences==0);
-  }
+	  if (vec_differences!=0){
+		  std::cout << "different Result!!!\n";
+	  }
+
 
 
 
