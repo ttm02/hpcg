@@ -72,6 +72,7 @@ int ComputeSPMV( const SparseMatrix & A, Vector & x, Vector & y) {
 
     for (int j=0; j< cur_nnz; j++){
     	local_int_t row=cur_inds[j];
+#pragma omp atomic
       yv[row] += cur_vals[j]*xv[i];
     }
   }
@@ -91,6 +92,7 @@ int ComputeSPMV( const SparseMatrix & A, Vector & x, Vector & y) {
 
     for (int j=0; j< cur_nnz; j++){
     	local_int_t row=cur_inds[j];
+#pragma omp atomic
       yv[row] += cur_vals[j]*xv[i];
     }
   }
@@ -100,14 +102,13 @@ int ComputeSPMV( const SparseMatrix & A, Vector & x, Vector & y) {
   // during send, the values to send where collected into a seperate buffer, so no isuses with override
   EndExchangeHaloSend(A, x);
 
+  /*
   //For DEBUGGING
   Vector yy;
   InitializeVector(yy, A.localNumberOfRows);
   ComputeSPMV_ref(A, x, yy);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-
 
   //assert matrix is same
   int differences=0;
@@ -150,9 +151,7 @@ int ComputeSPMV( const SparseMatrix & A, Vector & x, Vector & y) {
 		  std::cout << "different Result!!!\n";
 	  }
 
-
-
-
+*/
 
   return 0;
 }
