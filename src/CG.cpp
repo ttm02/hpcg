@@ -91,7 +91,7 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
   BeginExchangeHaloRecv(A, p);
   BeginExchangeHaloSend(A, p);
   //EndExchangeHalo(A, p);
-  TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
+  TICK(); ComputeSPMV(A, p, Ap,true); TOCK(t3); // Ap = A*p
   TICK(); ComputeWAXPBY(nrow, 1.0, b, -1.0, Ap, r, A.isWaxpbyOptimized);  TOCK(t2); // r = b - Ax (x stored in p)
   TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); TOCK(t1);
   normr = sqrt(normr);
@@ -107,7 +107,7 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
   for (int k=1; k<=max_iter && normr/normr0 > tolerance; k++ ) {
     TICK();
     if (doPreconditioning){
-    	//TODO we also need non-blocking comm in preconditioner
+    	//TODO we also need non-blocking comm in preconditioner?
       ComputeMG(A, r, z); // Apply preconditioner
       }
     else
@@ -129,7 +129,7 @@ int CG(const SparseMatrix & A, CGData & data, const Vector & b, Vector & x,
 
 //EndExchangeHaloSend(A, p);
 //EndExchangeHaloRecv(A, p);
-    TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); // Ap = A*p
+    TICK(); ComputeSPMV(A, p, Ap,true); TOCK(t3); // Ap = A*p
     BeginExchangeHaloRecv(A, p);
     // all other operations only use the local part of this vec
     // so communication on the other part is allowed
